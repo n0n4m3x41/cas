@@ -9,12 +9,10 @@ import org.apereo.cas.services.ServicesManager;
 import org.apereo.cas.util.function.FunctionUtils;
 import org.apereo.cas.web.support.ArgumentExtractor;
 import org.apereo.cas.web.support.WebUtils;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
-
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.util.Optional;
@@ -42,18 +40,13 @@ public class DefaultLogoutRedirectionStrategy implements LogoutRedirectionStrate
     public LogoutRedirectionResponse handle(final HttpServletRequest request, final HttpServletResponse response) {
         val logoutResponse = LogoutRedirectionResponse.builder();
 
-        var redirectUrl = StringUtils.EMPTY;
         val authorizedRedirectUrlFromRequest = WebUtils.getLogoutRedirectUrl(request, String.class);
-        if (StringUtils.isNotBlank(authorizedRedirectUrlFromRequest)) {
-            redirectUrl = authorizedRedirectUrlFromRequest;
-        } else {
-            redirectUrl = casProperties.getView().getDefaultRedirectUrl();
-        }
+        val redirectUrl = StringUtils.defaultIfBlank(authorizedRedirectUrlFromRequest, casProperties.getView().getDefaultRedirectUrl());
 
         Optional.ofNullable(argumentExtractor.extractService(request))
             .or(() -> FunctionUtils.doIf(StringUtils.isNotBlank(redirectUrl),
-                    () -> Optional.of(serviceFactory.createService(redirectUrl)),
-                    Optional::<WebApplicationService>empty).get())
+                () -> Optional.of(serviceFactory.createService(redirectUrl)),
+                Optional::<WebApplicationService>empty).get())
             .filter(service -> singleLogoutServiceLogoutUrlBuilder.isServiceAuthorized(service, Optional.of(request), Optional.of(response)))
             .filter(service -> {
                 val registeredService = servicesManager.findServiceBy(service);
@@ -66,8 +59,8 @@ public class DefaultLogoutRedirectionStrategy implements LogoutRedirectionStrate
                     logoutResponse.logoutRedirectUrl(Optional.of(service.getOriginalUrl()));
                 } else {
                     LOGGER.debug("Cannot redirect to [{}] given the service is unauthorized to use CAS, "
-                                 + "or following logout redirects is disabled in CAS settings. "
-                                 + "Ensure the service is registered with CAS and is enabled to allow access", service);
+                        + "or following logout redirects is disabled in CAS settings. "
+                        + "Ensure the service is registered with CAS and is enabled to allow access", service);
                 }
             }, () -> {
                 if (StringUtils.isNotBlank(authorizedRedirectUrlFromRequest)) {
@@ -76,4 +69,5 @@ public class DefaultLogoutRedirectionStrategy implements LogoutRedirectionStrate
             });
         return logoutResponse.build();
     }
+
 }
