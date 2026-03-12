@@ -11,6 +11,7 @@ import org.apereo.cas.util.serialization.SerializationUtils;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.tuple.Pair;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.session.MapSession;
 import org.springframework.session.MapSessionRepository;
 import java.io.Serializable;
@@ -29,11 +30,11 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 public class TicketRegistrySessionRepository extends MapSessionRepository {
-    private final TicketRegistry ticketRegistry;
-    private final TicketFactory ticketFactory;
+    private final ObjectProvider<TicketRegistry> ticketRegistry;
+    private final ObjectProvider<TicketFactory> ticketFactory;
 
-    public TicketRegistrySessionRepository(final TicketRegistry ticketRegistry,
-                                           final TicketFactory ticketFactory) {
+    public TicketRegistrySessionRepository(final ObjectProvider<TicketRegistry> ticketRegistry,
+                                           final ObjectProvider<TicketFactory> ticketFactory) {
         super(new ConcurrentHashMap<>());
         this.ticketRegistry = ticketRegistry;
         this.ticketFactory = ticketFactory;
@@ -46,17 +47,18 @@ public class TicketRegistrySessionRepository extends MapSessionRepository {
                 deleteById(session.getOriginalId());
             }
             val ticketId = TransientSessionTicketFactory.normalizeTicketId(session.getId());
+            val registry = ticketRegistry.getObject();
             try {
-                val currentTicket = ticketRegistry.getTicket(ticketId, TransientSessionTicket.class);
+                val currentTicket = registry.getTicket(ticketId, TransientSessionTicket.class);
                 currentTicket.getProperties().putAll(convertSessionAttributes(session));
                 LOGGER.trace("Updating session [{}] with properties [{}]", currentTicket.getId(), currentTicket);
-                ticketRegistry.updateTicket(currentTicket);
+                registry.updateTicket(currentTicket);
             } catch (final InvalidTicketException e) {
-                val factory = (TransientSessionTicketFactory) ticketFactory.get(TransientSessionTicket.class);
+                val factory = (TransientSessionTicketFactory) ticketFactory.getObject().get(TransientSessionTicket.class);
                 val properties = convertSessionAttributes(session);
                 val ticket = factory.create(ticketId, properties);
                 LOGGER.trace("Saving session [{}] with properties [{}]", ticket.getId(), ticket);
-                ticketRegistry.addTicket(ticket);
+                registry.addTicket(ticket);
             }
         });
     }
@@ -66,7 +68,7 @@ public class TicketRegistrySessionRepository extends MapSessionRepository {
         try {
             val ticketId = TransientSessionTicketFactory.normalizeTicketId(id);
             LOGGER.trace("Finding session by id [{}]", ticketId);
-            val ticket = ticketRegistry.getTicket(ticketId, TransientSessionTicket.class);
+            val ticket = ticketRegistry.getObject().getTicket(ticketId, TransientSessionTicket.class);
             val newSession = new MapSession(ticket.getId());
             newSession.setCreationTime(ticket.getProperty("creationTime", Instant.class));
             newSession.setLastAccessedTime(ticket.getProperty("lastAccessedTime", Instant.class));
@@ -88,7 +90,7 @@ public class TicketRegistrySessionRepository extends MapSessionRepository {
     public void deleteById(final String id) {
         FunctionUtils.doUnchecked(__ -> {
             LOGGER.trace("Deleting session by id [{}]", id);
-            ticketRegistry.deleteTicket(id);
+            ticketRegistry.getObject().deleteTicket(id);
         });
     }
 
