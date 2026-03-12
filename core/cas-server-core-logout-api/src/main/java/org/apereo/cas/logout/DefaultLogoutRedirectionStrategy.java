@@ -42,7 +42,7 @@ public class DefaultLogoutRedirectionStrategy implements LogoutRedirectionStrate
     public LogoutRedirectionResponse handle(final HttpServletRequest request, final HttpServletResponse response) {
         val logoutResponse = LogoutRedirectionResponse.builder();
 
-        final String redirectUrl;
+        var redirectUrl = StringUtils.EMPTY;
         val authorizedRedirectUrlFromRequest = WebUtils.getLogoutRedirectUrl(request, String.class);
         if (StringUtils.isNotBlank(authorizedRedirectUrlFromRequest)) {
             redirectUrl = authorizedRedirectUrlFromRequest;
