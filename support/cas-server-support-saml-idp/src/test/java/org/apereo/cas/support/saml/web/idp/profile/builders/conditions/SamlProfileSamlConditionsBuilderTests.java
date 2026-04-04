@@ -14,6 +14,7 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.TestPropertySource;
 
+import java.time.Duration;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -59,7 +60,7 @@ class SamlProfileSamlConditionsBuilderTests {
             val buildContext = getSamlProfileBuilderContext(service);
             val result = samlProfileSamlConditionsBuilder.build(buildContext);
             assertNotNull(result);
-            val diff = Duration.between(result.getNotBefore(), result.getNotOnOrAfter()).getSeconds();
+            val diff = Duration.between(result.getNotBefore(), result.getNotOnOrAfter()).toSeconds();
             assertEquals((long) service.getSkewAllowance() << 1, diff);
         }
     }
@@ -73,7 +74,7 @@ class SamlProfileSamlConditionsBuilderTests {
             val buildContext = getSamlProfileBuilderContext(service);
             val result = samlProfileSamlConditionsBuilder.build(buildContext);
             assertNotNull(result);
-            val diff = Duration.between(result.getNotBefore(), result.getNotOnOrAfter()).getSeconds();
+            val diff = Duration.between(result.getNotBefore(), result.getNotOnOrAfter()).toSeconds();
             assertEquals(10, diff);
         }
     }
@@ -90,7 +91,7 @@ class SamlProfileSamlConditionsBuilderTests {
             val buildContext = getSamlProfileBuilderContext(service);
             val result = samlProfileSamlConditionsBuilder.build(buildContext);
             assertNotNull(result);
-            val diff = Duration.between(result.getNotBefore(), result.getNotOnOrAfter()).getSeconds();
+            val diff = Duration.between(result.getNotBefore(), result.getNotOnOrAfter()).toSeconds();
             assertEquals(4, diff);
         }
     }
